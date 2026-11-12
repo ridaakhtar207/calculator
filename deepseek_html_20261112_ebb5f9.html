@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Responsive Calculator · Dark/Light · Keyboard</title>
+  <style>
+    /* ----- CSS variables for theming ----- */
+    :root {
+      --bg-page: #f4f6fa;
+      --calc-bg: #ffffff;
+      --display-bg: #f0f2f5;
+      --text-primary: #1e1e2f;
+      --text-secondary: #5e5e7a;
+      --btn-bg: #ffffff;
+      --btn-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
+      --btn-hover: #f8f9ff;
+      --operator-bg: #e8ecf4;
+      --operator-text: #2b2b4b;
+      --equal-bg: #4a6cf7;
+      --equal-text: white;
+      --scientific-bg: #eef1f8;
+      --scientific-text: #1e1e2f;
+      --border-light: #e0e4ec;
+      --toggle-bg: #e0e4ec;
+      --toggle-knob: #ffffff;
+      --key-hint-bg: rgba(74, 108, 247, 0.1);
+      --key-hint-color: #4a6cf7;
+    }
+
+    .dark {
+      --bg-page: #12121c;
+      --calc-bg: #1c1c2a;
+      --display-bg: #262636;
+      --text-primary: #f0f2fa;
+      --text-secondary: #a0a2b8;
+      --btn-bg: #2a2a3c;
+      --btn-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.6);
+      --btn-hover: #35354a;
+      --operator-bg: #34344a;
+      --operator-text: #e0e2f0;
+      --equal-bg: #5f7aff;
+      --equal-text: white;
+      --scientific-bg: #232334;
+      --scientific-text: #d0d2e8;
+      --border-light: #2e2e42;
+      --toggle-bg: #3a3a50;
+      --toggle-knob: #1c1c2a;
+      --key-hint-bg: rgba(95, 122, 255, 0.15);
+      --key-hint-color: #8fa3ff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      transition: background-color 0.2s ease, color 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg-page);
+      padding: 16px;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--toggle-bg);
+      width: 56px;
+      height: 30px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      padding: 3px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border-light);
+      z-index: 100;
+    }
+
+    .toggle-knob {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--toggle-knob);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateX(0);
+    }
+
+    .dark .toggle-knob {
+      transform: translateX(26px);
+    }
+
+    .toggle-icon {
+      font-size: 14px;
+      margin: 0 4px;
+      opacity: 0.7;
+      user-select: none;
+    }
+
+    .calculator {
+      width: 100%;
+      max-width: 720px;
+      background-color: var(--calc-bg);
+      border-radius: 48px;
+      padding: 24px 20px 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-light);
+      transition: background-color 0.25s, border-color 0.25s;
+    }
+
+    .display {
+      background-color: var(--display-bg);
+      border-radius: 28px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      text-align: right;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border-light);
+      transition: background-color 0.25s, border-color 0.25s;
+    }
+
+    .display-history {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      min-height: 1.6rem;
+      letter-spacing: 0.3px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: 400;
+    }
+
+    .display-main {
+      font-size: 2.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.2;
+      word-break: break-all;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      letter-spacing: -0.5px;
+    }
+
+    .scientific-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .scientific-keypad {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      border: none;
+      outline: none;
+      font-size: 1.2rem;
+      font-weight: 500;
+      padding: 18px 8px;
+      border-radius: 24px;
+      background-color: var(--btn-bg);
+      color: var(--text-primary);
+      box-shadow: var(--btn-shadow);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+
+    button:hover {
+      background-color: var(--btn-hover);
+      transform: scale(0.97);
+    }
+
+    button:active {
+      transform: scale(0.94);
+    }
+
+    /* Keyboard press visual feedback */
+    button.keyboard-active {
+      transform: scale(0.94);
+      background-color: var(--btn-hover);
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .scientific-keypad button {
+      background-color: var(--scientific-bg);
+      color: var(--scientific-text);
+      font-size: 1rem;
+      padding: 14px 4px;
+      border-radius: 18px;
+      border: 1px solid var(--border-light);
+      font-weight: 500;
+    }
+
+    .scientific-keypad button:hover {
+      background-color: var(--btn-hover);
+    }
+
+    .operator {
+      background-color: var(--operator-bg);
+      color: var(--operator-text);
+      font-weight: 600;
+      font-size: 1.4rem;
+    }
+
+    .equal {
+      background-color: var(--equal-bg);
+      color: var(--equal-text);
+      font-weight: 700;
+      box-shadow: 0 6px 14px rgba(74, 108, 247, 0.3);
+    }
+
+    .equal:hover {
+      background-color: #3b5bef;
+      filter: brightness(1.05);
+    }
+
+    .clear {
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    /* Key hint badge (top-right of button) */
+    .key-hint {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      font-size: 0.55rem;
+      font-weight: 600;
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: var(--key-hint-bg);
+      color: var(--key-hint-color);
+      opacity: 0.85;
+      pointer-events: none;
+      letter-spacing: 0.2px;
+    }
+
+    .scientific-keypad .key-hint {
+      font-size: 0.45rem;
+      top: 2px;
+      right: 3px;
+      padding: 0 3px;
+    }
+
+    /* Keyboard mode indicator */
+    .keyboard-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 10px;
+      opacity: 0.7;
+    }
+
+    .kbd-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    @media (max-width: 540px) {
+      .calculator {
+        padding: 16px 12px 16px;
+        border-radius: 32px;
+      }
+      .display-main {
+        font-size: 2rem;
+      }
+      .display-history {
+        font-size: 0.85rem;
+      }
+      button {
+        font-size: 1rem;
+        padding: 14px 4px;
+        border-radius: 18px;
+      }
+      .scientific-keypad button {
+        font-size: 0.85rem;
+        padding: 10px 2px;
+        border-radius: 14px;
+      }
+      .keypad {
+        gap: 8px;
+      }
+      .scientific-keypad {
+        gap: 6px;
+      }
+      .theme-toggle {
+        top: 12px;
+        right: 12px;
+        width: 50px;
+        height: 28px;
+      }
+      .toggle-knob {
+        width: 22px;
+        height: 22px;
+      }
+      .dark .toggle-knob {
+        transform: translateX(22px);
+      }
+      .key-hint {
+        display: none;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .scientific-keypad {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .display-main {
+        font-size: 1.7rem;
+      }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .mode-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 12px;
+      letter-spacing: 0.3px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="theme-toggle" id="themeToggle" role="button" aria-label="Toggle dark/light mode">
+    <span class="toggle-icon">☀️</span>
+    <div class="toggle-knob"></div>
+    <span class="toggle-icon">🌙</span>
+  </div>
+
+  <div class="calculator">
+    <div class="display">
+      <div class="display-history" id="history">&nbsp;</div>
+      <div class="display-main" id="result">0</div>
+    </div>
+
+    <div class="scientific-row" style="display: flex; justify-content: space-between; align-items: center;">
+      <button id="toggleScientific" style="flex: 1; max-width: 160px; padding: 10px 12px; font-size: 0.9rem; border-radius: 30px; background: var(--operator-bg); color: var(--operator-text);">
+        🧪 Scientific
+      </button>
+      <span style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 500;">DEG</span>
+    </div>
+
+    <div class="scientific-keypad hidden" id="scientificKeypad">
+      <button data-value="sin"><span class="key-hint">s</span>sin</button>
+      <button data-value="cos"><span class="key-hint">o</span>cos</button>
+      <button data-value="tan"><span class="key-hint">t</span>tan</button>
+      <button data-value="log"><span class="key-hint">l</span>log</button>
+      <button data-value="ln"><span class="key-hint">n</span>ln</button>
+      <button data-value="√"><span class="key-hint">q</span>√</button>
+      <button data-value="x²"><span class="key-hint">@</span>x²</button>
+      <button data-value="xʸ"><span class="key-hint">^</span>xʸ</button>
+      <button data-value="π"><span class="key-hint">p</span>π</button>
+      <button data-value="e"><span class="key-hint">E</span>e</button>
+      <button data-value="("><span class="key-hint">(</span>(</button>
+      <button data-value=")"><span class="key-hint">)</span>)</button>
+      <button data-value="!"><span class="key-hint">!</span>n!</button>
+      <button data-value="1/x"><span class="key-hint">r</span>1/x</button>
+      <button data-value="%"><span class="key-hint">%</span>%</button>
+    </div>
+
+    <div class="keypad">
+      <button class="clear" data-value="AC"><span class="key-hint">Esc</span>AC</button>
+      <button data-value="DEL"><span class="key-hint">⌫</span>⌫</button>
+      <button class="operator" data-value="%"><span class="key-hint">%</span>%</button>
+      <button class="operator" data-value="÷"><span class="key-hint">/</span>÷</button>
+
+      <button data-value="7"><span class="key-hint">7</span>7</button>
+      <button data-value="8"><span class="key-hint">8</span>8</button>
+      <button data-value="9"><span class="key-hint">9</span>9</button>
+      <button class="operator" data-value="×"><span class="key-hint">*</span>×</button>
+
+      <button data-value="4"><span class="key-hint">4</span>4</button>
+      <button data-value="5"><span class="key-hint">5</span>5</button>
+      <button data-value="6"><span class="key-hint">6</span>6</button>
+      <button class="operator" data-value="−"><span class="key-hint">-</span>−</button>
+
+      <button data-value="1"><span class="key-hint">1</span>1</button>
+      <button data-value="2"><span class="key-hint">2</span>2</button>
+      <button data-value="3"><span class="key-hint">3</span>3</button>
+      <button class="operator" data-value="+"><span class="key-hint">+</span>+</button>
+
+      <button data-value="0" style="grid-column: span 2;"><span class="key-hint">0</span>0</button>
+      <button data-value="."><span class="key-hint">.</span>.</button>
+      <button class="equal" data-value="="><span class="key-hint">↵</span>=</button>
+    </div>
+    <div class="mode-label">DEG · basic & scientific</div>
+    <div class="keyboard-indicator">
+      <span class="kbd-dot"></span>
+      <span>Keyboard ready — type numbers or use shortcuts</span>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const resultEl = document.getElementById('result');
+      const historyEl = document.getElementById('history');
+      const themeToggle = document.getElementById('themeToggle');
+      const toggleScientificBtn = document.getElementById('toggleScientific');
+      const scientificKeypad = document.getElementById('scientificKeypad');
+
+      let currentInput = '0';
+      let previousInput = '';
+      let operator = null;
+      let waitingForOperand = false;
+      let fullExpression = '';
+      let isScientificVisible = false;
+
+      // ----- helper: update display -----
+      function updateDisplay() {
+        resultEl.textContent = currentInput;
+        historyEl.textContent = fullExpression || '\u00A0';
+      }
+
+      // ----- clear all -----
+      function resetAll() {
+        currentInput = '0';
+        previousInput = '';
+        operator = null;
+        waitingForOperand = false;
+        fullExpression = '';
+        updateDisplay();
+      }
+
+      // ----- safe evaluation -----
+      function evaluateExpression(expr) {
+        let sanitized = expr
+          .replace(/×/g, '*')
+          .replace(/÷/g, '/')
+          .replace(/−/g, '-')
+          .replace(/π/g, 'Math.PI')
+          .replace(/e(?![\d(])/g, 'Math.E')
+          .replace(/sin\(/g, 'Math.sin(')
+          .replace(/cos\(/g, 'Math.cos(')
+          .replace(/tan\(/g, 'Math.tan(')
+          .replace(/log\(/g, 'Math.log10(')
+          .replace(/ln\(/g, 'Math.log(')
+          .replace(/√\(/g, 'Math.sqrt(')
+          .replace(/√/g, 'Math.sqrt')
+          .replace(/²/g, '**2')
+          .replace(/\^/g, '**')
+          .replace(/%/g, '/100');
+
+        sanitized = sanitized.replace(/(\d+)!/g, 'factorial($1)');
+
+        function factorial(n) {
+          if (n < 0) return NaN;
+          if (n === 0 || n === 1) return 1;
+          let result = 1;
+          for (let i = 2; i <= n; i++) result *= i;
+          return result;
+        }
+
+        try {
+          const fn = new Function('factorial', 'return ' + sanitized);
+          const val = fn(factorial);
+          if (!isFinite(val) || isNaN(val)) return 'Error';
+          if (Number.isInteger(val)) return val.toString();
+          return parseFloat(val.toFixed(10)).toString();
+        } catch (e) {
+          return 'Error';
+        }
+      }
+
+      // ----- handle scientific functions -----
+      function handleScientificInput(value) {
+        if (waitingForOperand || currentInput === '0') {
+          currentInput = '';
+          waitingForOperand = false;
+        }
+
+        switch (value) {
+          case 'sin':
+          case 'cos':
+          case 'tan':
+          case 'log':
+          case 'ln':
+            currentInput += value + '(';
+            break;
+          case '√':
+            currentInput += '√(';
+            break;
+          case 'x²':
+            currentInput += '²';
+            break;
+          case 'xʸ':
+            currentInput += '^';
+            break;
+          case 'π':
+            currentInput += 'π';
+            break;
+          case 'e':
+            currentInput += 'e';
+            break;
+          case '(':
+          case ')':
+            currentInput += value;
+            break;
+          case '!':
+            currentInput += '!';
+            break;
+          case '1/x':
+            if (currentInput !== '0' && currentInput !== '') {
+              currentInput = '1/(' + currentInput + ')';
+            } else {
+              currentInput = '1/';
+            }
+            break;
+          case '%':
+            currentInput += '%';
+            break;
+          default:
+            currentInput += value;
+        }
+        fullExpression = currentInput;
+        updateDisplay();
+      }
+
+      // ----- main input handler -----
+      function handleInput(value) {
+        if (value === 'AC') {
+          resetAll();
+          return;
+        }
+        if (value === 'DEL') {
+          if (currentInput.length > 1 && !waitingForOperand) {
+            currentInput = currentInput.slice(0, -1);
+          } else {
+            currentInput = '0';
+            waitingForOperand = false;
+          }
+          fullExpression = currentInput;
+          updateDisplay();
+          return;
+        }
+
+        const sciValues = ['sin', 'cos', 'tan', 'log', 'ln', '√', 'x²', 'xʸ', 'π', 'e', '(', ')', '!', '1/x', '%'];
+        if (sciValues.includes(value)) {
+          handleScientificInput(value);
+          return;
+        }
+
+        if ((value >= '0' && value <= '9') || value === '.') {
+          if (waitingForOperand) {
+            currentInput = value === '.' ? '0.' : value;
+            waitingForOperand = false;
+          } else {
+            if (currentInput === '0' && value !== '.') {
+              currentInput = value;
+            } else {
+              currentInput += value;
+            }
+          }
+          fullExpression = currentInput;
+          updateDisplay();
+          return;
+        }
+
+        if (value === '+' || value === '−' || value === '×' || value === '÷') {
+          if (operator && !waitingForOperand && previousInput !== '') {
+            const expr = previousInput + operator + currentInput;
+            const res = evaluateExpression(expr);
+            if (res !== 'Error') {
+              previousInput = res;
+              currentInput = res;
+              fullExpression = res + ' ' + value;
+            } else {
+              previousInput = currentInput;
+              fullExpression = currentInput + ' ' + value;
+            }
+          } else {
+            previousInput = currentInput;
+            fullExpression = currentInput + ' ' + value;
+          }
+          operator = value;
+          waitingForOperand = true;
+          historyEl.textContent = fullExpression;
+          return;
+        }
+
+        if (value === '=') {
+          if (!operator && currentInput !== '') {
+            const res = evaluateExpression(currentInput);
+            if (res !== 'Error') {
+              previousInput = res;
+              currentInput = res;
+              fullExpression = res;
+            } else {
+              currentInput = 'Error';
+              fullExpression = 'Error';
+            }
+            operator = null;
+            waitingForOperand = true;
+            updateDisplay();
+            return;
+          }
+
+          if (operator && previousInput !== '') {
+            const expr = previousInput + operator + currentInput;
+            const res = evaluateExpression(expr);
+            if (res !== 'Error') {
+              fullExpression = expr + ' =';
+              currentInput = res;
+              previousInput = res;
+            } else {
+              currentInput = 'Error';
+              fullExpression = 'Error';
+            }
+            operator = null;
+            waitingForOperand = true;
+            updateDisplay();
+            return;
+          }
+          updateDisplay();
+          return;
+        }
+
+        if (value === '%') {
+          currentInput += '%';
+          fullExpression = currentInput;
+          updateDisplay();
+          return;
+        }
+
+        currentInput += value;
+        fullExpression = currentInput;
+        updateDisplay();
+      }
+
+      // ----- button clicks -----
+      document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const value = btn.getAttribute('data-value');
+          if (value) handleInput(value);
+        });
+      });
+
+      // ----- visual feedback for keyboard presses -----
+      function flashButtonByValue(value) {
+        const btn = document.querySelector(`button[data-value="${value}"]`);
+        if (!btn) return;
+        btn.classList.add('keyboard-active');
+        setTimeout(() => btn.classList.remove('keyboard-active'), 120);
+      }
+
+      // ----- scientific toggle -----
+      toggleScientificBtn.addEventListener('click', () => {
+        isScientificVisible = !isScientificVisible;
+        if (isScientificVisible) {
+          scientificKeypad.classList.remove('hidden');
+          toggleScientificBtn.textContent = '🔬 Hide Scientific';
+          toggleScientificBtn.style.background = 'var(--equal-bg)';
+          toggleScientificBtn.style.color = 'white';
+        } else {
+          scientificKeypad.classList.add('hidden');
+          toggleScientificBtn.textContent = '🧪 Scientific';
+          toggleScientificBtn.style.background = 'var(--operator-bg)';
+          toggleScientificBtn.style.color = 'var(--operator-text)';
+        }
+      });
+
+      // ----- theme toggle -----
+      themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+        const isDark = document.body.classList.contains('dark');
+        localStorage.setItem('calc-theme', isDark ? 'dark' : 'light');
+      });
+
+      const savedTheme = localStorage.getItem('calc-theme');
+      if (savedTheme === 'dark') {
+        document.body.classList.add('dark');
+      } else if (savedTheme === 'light') {
+        document.body.classList.remove('dark');
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+      }
+
+      // ----- COMPREHENSIVE KEYBOARD SUPPORT -----
+      const KEY_MAP = {
+        '0': '0', '1': '1', '2': '2', '3': '3', '4': '4',
+        '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
+        '+': '+',
+        '-': '−',
+        '*': '×',
+        '/': '÷',
+        '.': '.',
+        '=': '=',
+        'Enter': '=',
+        '%': '%',
+        'Backspace': 'DEL',
+        'Delete': 'DEL',
+        'Escape': 'AC',
+        'c': 'AC', 'C': 'AC',
+        '(': '(',
+        ')': ')',
+        's': 'sin', 'S': 'sin',
+        'o': 'cos', 'O': 'cos',
+        't': 'tan', 'T': 'tan',
+        'l': 'log', 'L': 'log',
+        'n': 'ln',  'N': 'ln',
+        'q': '√',   'Q': '√',
+        '@': 'x²',
+        '^': 'xʸ',
+        'p': 'π',   'P': 'π',
+        'e': 'e',   'E': 'e',
+        '!': '!',
+        'r': '1/x', 'R': '1/x',
+      };
+
+      const INTERCEPT_KEYS = new Set([
+        '0','1','2','3','4','5','6','7','8','9',
+        '+','-','*','/','.','=','%','Enter','Backspace','Delete','Escape',
+        '(',')','!','^','@','s','S','o','O','t','T','l','L','n','N',
+        'q','Q','p','P','e','E','r','R','c','C'
+      ]);
+
+      window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        const key = e.key;
+        if (!INTERCEPT_KEYS.has(key)) return;
+
+        const mapped = KEY_MAP[key];
+        if (!mapped) return;
+
+        e.preventDefault();
+        handleInput(mapped);
+        flashButtonByValue(mapped);
+      });
+
+      // Ensure body is focusable so keyboard events work right away
+      document.body.setAttribute('tabindex', '0');
+      document.body.focus();
+
+      // Re-focus body after any button click
+      document.querySelectorAll('button').forEach(b => {
+        b.addEventListener('click', () => document.body.focus());
+      });
+
+      // initial display
+      updateDisplay();
+    })();
+  </script>
+</body>
+</html>
